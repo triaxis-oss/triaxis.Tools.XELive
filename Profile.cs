@@ -20,10 +20,10 @@ namespace XELive
         {
             var res = new Profile
             {
-                Name = p2.Name,
+                Name = p2.Name ?? p1.Name,
                 IsDefault = p2.IsDefault,
                 InheritFrom = p1.InheritFrom,
-                ConnectionString = p2.ConnectionString,
+                ConnectionString = p2.ConnectionString ?? p1.ConnectionString,
             };
 
             res.IgnoreDatabases = p1.IgnoreDatabases.Concat(p2.IgnoreDatabases);

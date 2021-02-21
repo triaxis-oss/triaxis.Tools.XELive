@@ -113,6 +113,7 @@ namespace XELive
                     Console.WriteLine($"Tearing down session {Output.Green(id)}");
                     await sql.ExecuteAsync($"ALTER EVENT SESSION [{id}] ON SERVER STATE = STOP");
                     await sql.ExecuteAsync($"DROP EVENT SESSION [{id}] ON SERVER");
+                    Console.WriteLine($"Session teardown complete {Output.Green(id)}");
                 }
             }
         }

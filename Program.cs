@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,8 @@ namespace XELive
     {
         static async Task Main(string[] args)
         {
+            var cts = new CancellationTokenSource();
+
             try
             {
                 var profiles = ReadConfigurations(
@@ -20,7 +23,13 @@ namespace XELive
                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".xelive.json")
                 );
 
-                var selname = args.Length > 0 ? args[0] : null;
+                string query = "", selname = null;
+                if (args.Length > 0)
+                {
+                    selname = args[0];
+                    query = string.Join(" ", args.Skip(1));
+                }
+
                 Profile nameDefault = null, cfgDefault = null, selected = null;
                 var profileMap = new Dictionary<string, Profile>(StringComparer.OrdinalIgnoreCase);
 
@@ -43,13 +52,30 @@ namespace XELive
                     profile = Profile.Combine(baseProfile, profile);
                 }
 
-                await new XEStreamer(profile)
-                    .Run(string.Join(" ", args), default);
+                var task = new XEStreamer(profile)
+                    .Run(query, cts.Token);
+
+                while (!cts.IsCancellationRequested)
+                {
+                    var key = Console.ReadKey(true);
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.Q:
+                        case ConsoleKey.Escape:
+                            cts.Cancel();
+                            break;
+                    }
+                }
+
+                await task;
             }
             catch (Exception err)
             {
-                Console.WriteLine($"ERROR: {Output.BrightRed(err.Message)} ({err.GetType()})");
-                Console.WriteLine(Output.Red(err.StackTrace));
+                if (!cts.IsCancellationRequested)
+                {
+                    Console.WriteLine($"ERROR: {Output.BrightRed(err.Message)} ({err.GetType()})");
+                    Console.WriteLine(Output.Red(err.StackTrace));
+                }
             }
         }
 
