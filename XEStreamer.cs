@@ -14,15 +14,44 @@ namespace XELive
     class XEStreamer
     {
         Profile _profile;
+        HashSet<string> _onlyDatabases, _onlyUsers, _onlyStatements, _onlyPrefixes;
         HashSet<string> _ignoredDatabases, _ignoredUsers, _ignoredStatements, _ignoredPrefixes;
 
         public XEStreamer(Profile profile)
         {
             _profile = profile;
-            _ignoredDatabases = new HashSet<string>(profile.IgnoreDatabases, StringComparer.OrdinalIgnoreCase);
-            _ignoredUsers = new HashSet<string>(profile.IgnoreUsers, StringComparer.OrdinalIgnoreCase);
-            _ignoredStatements = new HashSet<string>(profile.IgnoreStatements, StringComparer.OrdinalIgnoreCase);
-            _ignoredPrefixes = new HashSet<string>(profile.IgnorePrefixes, StringComparer.OrdinalIgnoreCase);
+
+            _onlyDatabases = CreateFilterSet(profile.OnlyDatabases);
+            _onlyUsers = CreateFilterSet(profile.OnlyUsers);
+            _onlyStatements = CreateFilterSet(profile.OnlyStatements);
+            _onlyPrefixes = CreateFilterSet(profile.OnlyPrefixes);
+
+            _ignoredDatabases = CreateFilterSet(profile.IgnoreDatabases);
+            _ignoredUsers = CreateFilterSet(profile.IgnoreUsers);
+            _ignoredStatements = CreateFilterSet(profile.IgnoreStatements);
+            _ignoredPrefixes = CreateFilterSet(profile.IgnorePrefixes);
+        }
+
+        private static HashSet<string> CreateFilterSet(IEnumerable<string> elements)
+        {
+            var set = new HashSet<string>(elements, StringComparer.OrdinalIgnoreCase);
+            return set.Count == 0 ? null : set;
+        }
+
+        private static bool? IsPrefixInSet(HashSet<string> prefixSet, string statement)
+        {
+            if (prefixSet == null || statement == null)
+                return null;
+
+            foreach (var prefix in prefixSet)
+            {
+                if (statement.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public async Task Run(string query, CancellationToken cancellationToken)
@@ -124,7 +153,7 @@ namespace XELive
 
             if (e.Actions.TryGetValue("database_name", out var oDB) && oDB is string db)
             {
-                if (_ignoredDatabases.Contains(db))
+                if (_ignoredDatabases?.Contains(db) == true || _onlyDatabases?.Contains(db) == false)
                     return null;
 
                 dbName = db;
@@ -132,7 +161,7 @@ namespace XELive
 
             if (e.Actions.TryGetValue("nt_username", out var oUser) && oUser is string user)
             {
-                if (_ignoredUsers.Contains(user))
+                if (_ignoredUsers?.Contains(user) == true || _onlyUsers?.Contains(user) == false)
                     return null;
 
                 userName = user;
@@ -141,16 +170,11 @@ namespace XELive
             if ((e.Fields.TryGetValue("statement", out var oStmt) || e.Fields.TryGetValue("batch_text", out oStmt))
                 && oStmt is string stmt)
             {
-                if (_ignoredStatements.Contains(stmt))
+                if (_ignoredStatements?.Contains(stmt) == true || _onlyStatements?.Contains(stmt) == false)
                     return null;
 
-                foreach (var prefix in _ignoredPrefixes)
-                {
-                    if (stmt.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return null;
-                    }
-                }
+                if (IsPrefixInSet(_ignoredPrefixes, stmt) == true || IsPrefixInSet(_onlyPrefixes, stmt) == false)
+                    return null;
 
                 string formatted = null;
 

@@ -7,11 +7,11 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>XELive</ToolCommandName>
     <AssemblyName>$(ToolCommandName)</AssemblyName>
-    <Version>0.2</Version>
+    <Version>0.2.1</Version>
     <Authors>ssimek</Authors>
     <Company>triaxis s.r.o.</Company>
     <Description>Simple tool for live monitoring of commands executed on Sql Server using XEvents</Description>
-    <Copyright>&#169; 2019 triaxis s.r.o.</Copyright>
+    <Copyright>&#169; 2019-2021 triaxis s.r.o.</Copyright>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
