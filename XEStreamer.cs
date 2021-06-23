@@ -86,6 +86,7 @@ namespace XELive
                     ADD EVENT sqlserver.sql_batch_completed (ACTION({actions}))
                     WITH (MAX_MEMORY=1MB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,MAX_DISPATCH_LATENCY=1 SECONDS)
                     {query}");
+                Console.WriteLine($"Starting session {Output.Green(id)}");
                 await sql.ExecuteAsync($"ALTER EVENT SESSION [{id}] ON SERVER STATE = START");
                 try
                 {
@@ -136,6 +137,9 @@ namespace XELive
                         }
                         return Task.CompletedTask;
                     }, cancellationToken);
+                }
+                catch (SqlException e) when (e.ErrorCode == -2146232060) // "A severe error occurred on the current command" - this is what happens when canceling
+                {
                 }
                 finally
                 {

@@ -15,6 +15,9 @@ namespace XELive
         static async Task Main(string[] args)
         {
             var cts = new CancellationTokenSource();
+            XEStreamer xes = null;
+            Task task = null;
+            string query = "";
 
             try
             {
@@ -23,7 +26,7 @@ namespace XELive
                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".xelive.json")
                 );
 
-                string query = "", selname = null;
+                string selname = null;
                 if (args.Length > 0)
                 {
                     selname = args[0];
@@ -52,8 +55,23 @@ namespace XELive
                     profile = Profile.Combine(baseProfile, profile);
                 }
 
-                var task = new XEStreamer(profile)
-                    .Run(query, cts.Token);
+                xes = new XEStreamer(profile);
+                task = xes.Run(query, cts.Token);
+            }
+            catch (Exception err)
+            {
+                FatalError(err);
+            }
+
+            try
+            {
+                _ = task.ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        FatalError(t.Exception);
+                    }
+                });
 
                 while (!cts.IsCancellationRequested)
                 {
@@ -69,14 +87,16 @@ namespace XELive
 
                 await task;
             }
-            catch (Exception err)
+            catch
             {
-                if (!cts.IsCancellationRequested)
-                {
-                    Console.WriteLine($"ERROR: {Output.BrightRed(err.Message)} ({err.GetType()})");
-                    Console.WriteLine(Output.Red(err.StackTrace));
-                }
+                // error is already logged in task continuation
             }
+        }
+
+        private static void FatalError(Exception err)
+        {
+            Console.WriteLine($"ERROR: {Output.BrightRed(err.Message)} ({err.GetType()})");
+            Console.WriteLine(Output.Red(err.StackTrace));
         }
 
         static async IAsyncEnumerable<Profile> ReadConfigurations(params string[] paths)
