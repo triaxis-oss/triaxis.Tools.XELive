@@ -10,6 +10,7 @@ namespace XELive
         public bool IsDefault { get; set; }
         public string InheritFrom { get; set; }
         public string ConnectionString { get; set; }
+        public bool? IndividualStatements { get; set; }
 
         public IEnumerable<string> OnlyDatabases { get; set; } = Enumerable.Empty<string>();
         public IEnumerable<string> OnlyUsers { get; set; } = Enumerable.Empty<string>();
@@ -29,6 +30,7 @@ namespace XELive
                 IsDefault = p2.IsDefault,
                 InheritFrom = p1.InheritFrom,
                 ConnectionString = p2.ConnectionString ?? p1.ConnectionString,
+                IndividualStatements = p2.IndividualStatements ?? p1.IndividualStatements,
             };
 
             res.OnlyDatabases = p1.OnlyDatabases.Concat(p2.OnlyDatabases);
