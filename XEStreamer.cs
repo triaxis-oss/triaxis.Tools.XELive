@@ -239,11 +239,13 @@ namespace XELive
                 return null;
 
             i += 2;
-            int pdefStart = i;
+            int pdefStart = i + 1;
             if (!SkipString(sql, ref i)) return null;
-            int pdefEnd = i;
+            int pdefEnd = i - 1;
+            var pdefs = sql[pdefStart..pdefEnd].Split(',');
 
             var paramVal = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            int paramIndex = 0;
 
             while (i < sql.Length)
             {
@@ -252,10 +254,18 @@ namespace XELive
                 i++;
                 int nameStart = i;
                 int eq = sql.IndexOf('=', i + 1);
+                string name;
+                int valStart;
                 if (eq == -1)
-                    return null;
-                string name = sql.Substring(nameStart, eq - nameStart);
-                int valStart = i = eq + 1;
+                {
+                    name = pdefs[paramIndex].Split()[0];
+                    valStart = i;
+                }
+                else
+                {
+                    name = sql.Substring(nameStart, eq - nameStart);
+                    valStart = i = eq + 1;
+                }
                 if (i + 1 < sql.Length && (sql[i] == 'n' || sql[i] == 'N') && sql[i + 1] == '\'')
                 {
                     // skip N, will be processed as string
@@ -272,6 +282,7 @@ namespace XELive
                         i = sql.Length;
                 }
                 paramVal[name] = sql.Substring(valStart, i - valStart);
+                paramIndex++;
             }
 
             string stmt = sql.Substring(stmtStart + 1, stmtEnd - stmtStart - 2).Replace("''", "'");
