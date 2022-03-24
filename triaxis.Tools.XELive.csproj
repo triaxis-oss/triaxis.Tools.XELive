@@ -7,7 +7,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>XELive</ToolCommandName>
     <AssemblyName>$(ToolCommandName)</AssemblyName>
-    <Version>0.2.1</Version>
+    <Version>0.3</Version>
     <Authors>ssimek</Authors>
     <Company>triaxis s.r.o.</Company>
     <Description>Simple tool for live monitoring of commands executed on Sql Server using XEvents</Description>
@@ -17,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.8.0" />
     <PackageReference Include="Crayon" Version="1.2.48" />
     <PackageReference Include="Microsoft.SqlServer.XEvent.XELite" Version="2019.7.2.9" />
   </ItemGroup>

@@ -86,16 +86,17 @@ namespace XELive
                     yield return "sql_batch_completed";
                     if (_profile.IndividualStatements ?? false)
                     {
+                        yield return "rpc_starting";
+                        yield return "sql_batch_starting";
                         yield return "sp_statement_completed";
                     }
                 }
 
-                var events = string.Join(",", EventList().Select(s => $"ADD EVENT sqlserver.{s} (ACTION({actions}))"));
+                var events = string.Join(",", EventList().Select(s => $"ADD EVENT sqlserver.{s} (ACTION({actions})) {query}"));
 
                 Console.WriteLine($"Creating session {Output.Green(id)}");
                 await sql.ExecuteAsync($@"CREATE EVENT SESSION [{id}] ON SERVER {events}
-                    WITH (MAX_MEMORY=1MB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,MAX_DISPATCH_LATENCY=1 SECONDS)
-                    {query}");
+                    WITH (MAX_MEMORY=1MB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,MAX_DISPATCH_LATENCY=1 SECONDS)");
                 Console.WriteLine($"Starting session {Output.Green(id)}");
                 await sql.ExecuteAsync($"ALTER EVENT SESSION [{id}] ON SERVER STATE = START");
                 try

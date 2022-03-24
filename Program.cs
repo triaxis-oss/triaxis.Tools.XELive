@@ -6,18 +6,33 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using CommandLine;
 using Crayon;
 
 namespace XELive
 {
     class Program
     {
-        static async Task Main(string[] args)
+        class StartupOptions : Profile
+        {
+            [Option('p', "profile", Required = false, HelpText = "Name of the base profile to use (configured in ~/.xelive.json)")]
+            public string Profile { get; set; }
+            [Option('q', "query", Required = false, HelpText = "Filtering expression (WHERE in CREATE EVENT SESSION ADD EVENT)")]
+            public string Query { get; set; }
+
+            [Option("procedure-statements", HelpText = "Include individual stored procedure statements in the output")]
+            public new bool IndividualStatements { get; set; }
+        }
+
+        static Task Main(string[] args)
+            =>  Parser.Default.ParseArguments<StartupOptions>(args)
+                    .WithParsedAsync(Run);
+
+        static async Task Run(StartupOptions options)
         {
             var cts = new CancellationTokenSource();
             XEStreamer xes = null;
             Task task = null;
-            string query = "";
 
             try
             {
@@ -26,13 +41,6 @@ namespace XELive
                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".xelive.json")
                 );
 
-                string selname = null;
-                if (args.Length > 0)
-                {
-                    selname = args[0];
-                    query = string.Join(" ", args.Skip(1));
-                }
-
                 Profile nameDefault = null, cfgDefault = null, selected = null;
                 var profileMap = new Dictionary<string, Profile>(StringComparer.OrdinalIgnoreCase);
 
@@ -40,7 +48,7 @@ namespace XELive
                 {
                     if (p.IsDefault)
                         cfgDefault = p;
-                    if (selname != null && p.Name == selname)
+                    if (options.Profile != null && p.Name == options.Profile)
                         selected = p;
                     if (p.Name == "default")
                         nameDefault = p;
@@ -55,8 +63,14 @@ namespace XELive
                     profile = Profile.Combine(baseProfile, profile);
                 }
 
+                if (options.IndividualStatements)
+                {
+                    ((Profile)options).IndividualStatements = true;
+                }
+                profile = Profile.Combine(profile, options);
+
                 xes = new XEStreamer(profile);
-                task = xes.Run(query, cts.Token);
+                task = xes.Run(options.Query, cts.Token);
             }
             catch (Exception err)
             {
@@ -93,11 +107,20 @@ namespace XELive
             }
         }
 
+        private static void Fail(IEnumerable<Error> errors)
+        {
+            foreach (var err in errors)
+            {
+                Console.WriteLine($"Argument parsing error: {Output.BrightRed(err.ToString())}");
+            }
+        }
+
         private static void FatalError(Exception err)
         {
             Console.WriteLine($"ERROR: {Output.BrightRed(err.Message)} ({err.GetType()})");
             Console.WriteLine(Output.Red(err.StackTrace));
         }
+
 
         static async IAsyncEnumerable<Profile> ReadConfigurations(params string[] paths)
         {

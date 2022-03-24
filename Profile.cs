@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CommandLine;
 
 namespace XELive
 {
@@ -9,17 +10,26 @@ namespace XELive
         public string Name { get; set; }
         public bool IsDefault { get; set; }
         public string InheritFrom { get; set; }
+        [Option("connection-string", HelpText = "Connection string override")]
         public string ConnectionString { get; set; }
         public bool? IndividualStatements { get; set; }
 
+        [Option("only-database")]
         public IEnumerable<string> OnlyDatabases { get; set; } = Enumerable.Empty<string>();
+        [Option("only-user")]
         public IEnumerable<string> OnlyUsers { get; set; } = Enumerable.Empty<string>();
+        [Option("only-statement")]
         public IEnumerable<string> OnlyStatements { get; set; } = Enumerable.Empty<string>();
+        [Option("only-prefix")]
         public IEnumerable<string> OnlyPrefixes { get; set; } = Enumerable.Empty<string>();
 
+        [Option("ignore-database")]
         public IEnumerable<string> IgnoreDatabases { get; set; } = Enumerable.Empty<string>();
+        [Option("ignore-user")]
         public IEnumerable<string> IgnoreUsers { get; set; } = Enumerable.Empty<string>();
+        [Option("ignore-statement")]
         public IEnumerable<string> IgnoreStatements { get; set; } = Enumerable.Empty<string>();
+        [Option("ignore-prefix")]
         public IEnumerable<string> IgnorePrefixes { get; set; } = Enumerable.Empty<string>();
 
         public static Profile Combine(Profile p1, Profile p2)
