@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFrameworks>net5.0;net6.0</TargetFrameworks>
     <PackageId>triaxis.Tools.XELive</PackageId>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>XELive</ToolCommandName>
     <AssemblyName>$(ToolCommandName)</AssemblyName>
-    <Version>0.3</Version>
+    <Version>0.3.1</Version>
     <Authors>ssimek</Authors>
     <Company>triaxis s.r.o.</Company>
     <Description>Simple tool for live monitoring of commands executed on Sql Server using XEvents</Description>
