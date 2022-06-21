@@ -13,6 +13,7 @@ namespace XELive
         [Option("connection-string", HelpText = "Connection string override")]
         public string ConnectionString { get; set; }
         public bool? IndividualStatements { get; set; }
+        public bool? ShowTransactionIds { get; set; }
 
         [Option("only-database")]
         public IEnumerable<string> OnlyDatabases { get; set; } = Enumerable.Empty<string>();
@@ -41,6 +42,7 @@ namespace XELive
                 InheritFrom = p1.InheritFrom,
                 ConnectionString = p2.ConnectionString ?? p1.ConnectionString,
                 IndividualStatements = p2.IndividualStatements ?? p1.IndividualStatements,
+                ShowTransactionIds = p2.ShowTransactionIds ?? p1.ShowTransactionIds,
             };
 
             res.OnlyDatabases = p1.OnlyDatabases.Concat(p2.OnlyDatabases);

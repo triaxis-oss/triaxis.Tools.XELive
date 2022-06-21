@@ -16,6 +16,7 @@ namespace XELive
         Profile _profile;
         HashSet<string> _onlyDatabases, _onlyUsers, _onlyStatements, _onlyPrefixes;
         HashSet<string> _ignoredDatabases, _ignoredUsers, _ignoredStatements, _ignoredPrefixes;
+        Dictionary<long, IXEvent> _transactions;
 
         public XEStreamer(Profile profile)
         {
@@ -30,6 +31,8 @@ namespace XELive
             _ignoredUsers = CreateFilterSet(profile.IgnoreUsers);
             _ignoredStatements = CreateFilterSet(profile.IgnoreStatements);
             _ignoredPrefixes = CreateFilterSet(profile.IgnorePrefixes);
+
+            _transactions = new();
         }
 
         private static HashSet<string> CreateFilterSet(IEnumerable<string> elements)
@@ -75,15 +78,25 @@ namespace XELive
 
                 var id = $"xelive-{_profile.Name}-{Guid.NewGuid()}";
 
-                var actions = string.Join(",", new string[] {
-                    "nt_username", "client_app_name", "server_principal_name",
-                    "database_name", "session_server_principal_name",
-                    }.Select(s => "sqlserver." + s));
+                IEnumerable<string> ActionList()
+                {
+                    yield return "nt_username";
+                    yield return "client_app_name";
+                    yield return "server_principal_name";
+                    yield return "database_name";
+                    yield return "session_server_principal_name";
+
+                    if (_profile.ShowTransactionIds ?? false)
+                    {
+                        yield return "transaction_id";
+                    }
+                }
 
                 IEnumerable<string> EventList()
                 {
                     yield return "rpc_completed";
                     yield return "sql_batch_completed";
+                    yield return "sql_transaction";
                     if (_profile.IndividualStatements ?? false)
                     {
                         yield return "rpc_starting";
@@ -92,9 +105,10 @@ namespace XELive
                     }
                 }
 
+                var actions = string.Join(",", ActionList().Select(s => "sqlserver." + s));
                 var events = string.Join(",", EventList().Select(s => $"ADD EVENT sqlserver.{s} (ACTION({actions})) {query}"));
 
-                Console.WriteLine($"Creating session {Output.Green(id)}");
+                Console.WriteLine($"Creating session {Output.Green(id)} {Output.Yellow(actions)}");
                 await sql.ExecuteAsync($@"CREATE EVENT SESSION [{id}] ON SERVER {events}
                     WITH (MAX_MEMORY=1MB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,MAX_DISPATCH_LATENCY=1 SECONDS)");
                 Console.WriteLine($"Starting session {Output.Green(id)}");
@@ -106,17 +120,27 @@ namespace XELive
                     var output = Console.Out;
                     var sb = new StringBuilder();
 
-                    await streamer.ReadEventStream(xe =>
+                    await streamer.ReadEventStream(DumpEvent, cancellationToken);
+
+                    Task DumpEvent(IXEvent xe)
                     {
                         try
                         {
-                            var log = FormatText(xe);
+                            var log = FormatText(xe, out long txid);
                             if (log != null)
                             {
-                                output.Write(Output.Yellow(xe.Timestamp.ToLocalTime().ToString("HH:mm:ss.ffff")));
-                                output.Write(": ");
-
                                 sb.Length = 0;
+                                if ((_profile.ShowTransactionIds ?? false) && txid != 0)
+                                {
+                                    sb.Append(Output.Green($"({txid}) "));
+
+                                    if (_transactions.TryGetValue(txid, out var txe) && txe != null)
+                                    {
+                                        DumpEvent(txe);
+                                        _transactions[txid] = null;
+                                    }
+                                }
+
                                 sb.Append('[');
                                 sb.Append(xe.Name);
 
@@ -134,6 +158,8 @@ namespace XELive
 
                                 var evt = sb.ToString();
 
+                                output.Write(Output.Yellow(xe.Timestamp.ToLocalTime().ToString("HH:mm:ss.ffff")));
+                                output.Write(": ");
                                 if (xe.Fields.TryGetValue("writes", out object oWr) && oWr is ulong wr && wr > 0)
                                     output.Write(Output.BrightMagenta(evt));
                                 else
@@ -147,7 +173,7 @@ namespace XELive
                             Console.WriteLine($"{Output.Red("Error formatting output: ")} {err}");
                         }
                         return Task.CompletedTask;
-                    }, cancellationToken);
+                    }
                 }
                 catch (SqlException e) when (e.ErrorCode == -2146232060) // "A severe error occurred on the current command" - this is what happens when canceling
                 {
@@ -162,9 +188,20 @@ namespace XELive
             }
         }
 
-        string FormatText(IXEvent e)
+        string FormatText(IXEvent e, out long txid)
         {
             string dbName = null, userName = null;
+
+            if ((e.Fields.TryGetValue("transaction_id", out var otxid) ||
+                e.Actions.TryGetValue("transaction_id", out otxid)) &&
+                otxid is long id)
+            {
+                txid = id;
+            }
+            else
+            {
+                txid = 0;
+            }
 
             if (e.Actions.TryGetValue("database_name", out var oDB) && oDB is string db)
             {
@@ -205,6 +242,26 @@ namespace XELive
 
 
                 return $"{Output.Cyan(dbName)}: {formatted}";
+            }
+
+            if (e.Fields.TryGetValue("transaction_state", out var txState) && txState is string txStateName)
+            {
+                if (txid != 0)
+                {
+                    if (txStateName == "Begin")
+                    {
+                        _transactions[txid] = e;
+                        return null;
+                    }
+                    else if (_transactions.TryGetValue(txid, out var txe) && txe == null)
+                    {
+                        return $"{Output.BrightBlue(txStateName)}";
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
             }
 
             return e.ToString();

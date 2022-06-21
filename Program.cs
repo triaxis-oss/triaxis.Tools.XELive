@@ -22,6 +22,9 @@ namespace XELive
 
             [Option("procedure-statements", HelpText = "Include individual stored procedure statements in the output")]
             public new bool IndividualStatements { get; set; }
+
+            [Option('t', "show-transaction-ids", HelpText = "Show transaction IDs in the output")]
+            public new bool ShowTransactionIds { get; set; }
         }
 
         static Task Main(string[] args)
@@ -66,6 +69,10 @@ namespace XELive
                 if (options.IndividualStatements)
                 {
                     ((Profile)options).IndividualStatements = true;
+                }
+                if (options.ShowTransactionIds)
+                {
+                    ((Profile)options).ShowTransactionIds = true;
                 }
                 profile = Profile.Combine(profile, options);
 
