@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Crayon;
+using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.XEvent.XELite;
 
 namespace XELive
@@ -161,7 +161,7 @@ namespace XELive
                                 output.Write(Output.Yellow(xe.Timestamp.ToLocalTime().ToString("HH:mm:ss.ffff")));
                                 output.Write(": ");
                                 if (xe.Fields.TryGetValue("writes", out object oWr) && oWr is ulong wr && wr > 0)
-                                    output.Write(Output.BrightMagenta(evt));
+                                    output.Write(Output.Bright.Magenta(evt));
                                 else
                                     output.Write(Output.Dim(evt));
                                 output.Write(' ');
@@ -255,7 +255,7 @@ namespace XELive
                     }
                     else if (_transactions.TryGetValue(txid, out var txe) && txe == null)
                     {
-                        return $"{Output.BrightBlue(txStateName)}";
+                        return $"{Output.Bright.Blue(txStateName)}";
                     }
                     else
                     {
@@ -377,7 +377,7 @@ namespace XELive
                         // string literal, we must skip it to avoid expanding parameters inside
                         SkipString(stmt, ref rx);
                         string lit = stmt.Substring(s, rx - s);
-                        sb.Append(Output.BrightMagenta(lit));
+                        sb.Append(Output.Bright.Magenta(lit));
                         break;
 
                     case '@':
@@ -387,9 +387,9 @@ namespace XELive
                             rx++;
                         string param = stmt.Substring(s, rx - s);
                         if (paramVal.TryGetValue(param, out var val))
-                            sb.Append(Output.BrightGreen(val));
+                            sb.Append(Output.Bright.Green(val));
                         else
-                            sb.Append(Output.BrightGreen(param));
+                            sb.Append(Output.Bright.Green(param));
                         break;
 
                     default:
@@ -402,9 +402,10 @@ namespace XELive
             return sb.ToString();
         }
 
-        static readonly Regex s_rexSelect = new Regex(@"(?<select>SELECT(\s+TOP\s+\S+)?)\s+
-        (?<table>[[\]\w_]+).(?<column>[[\]\w_]+)\s+AS\s+(?<alias>[[\]\w_+]+)
-        (,\s+(?<table>[[\]\w_]+).(?<column>[[\]\w_]+)\s+AS\s+(?<alias>[[\]\w_+]+))+
+        // regex fragment for a single fully qualified SELECT column with optional alias
+        const string s_rexFragColumn = @"((?<table>[[\]\w_.]+)\.(?<column>[[\]\w_]+)(\s+AS\s+(?<alias>[[\]\w_+]+))?)";
+        static readonly Regex s_rexSelect = new Regex(@$"(?<select>SELECT(\s+(TOP\s+\S+|DISTINCT))?)\s+
+        ({s_rexFragColumn})(,\s+{s_rexFragColumn})*
         \s+(?<from>FROM)",
             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
 

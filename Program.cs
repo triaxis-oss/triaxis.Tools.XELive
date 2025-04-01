@@ -28,7 +28,7 @@ namespace XELive
         }
 
         static Task Main(string[] args)
-            =>  Parser.Default.ParseArguments<StartupOptions>(args)
+            => Parser.Default.ParseArguments<StartupOptions>(args)
                     .WithParsedAsync(Run);
 
         static async Task Run(StartupOptions options)
@@ -96,13 +96,21 @@ namespace XELive
 
                 while (!cts.IsCancellationRequested)
                 {
-                    var key = Console.ReadKey(true);
-                    switch (key.Key)
+                    if (Console.IsInputRedirected)
                     {
-                        case ConsoleKey.Q:
-                        case ConsoleKey.Escape:
-                            cts.Cancel();
-                            break;
+                        Console.ReadLine();
+                        cts.Cancel();
+                    }
+                    else
+                    {
+                        var key = Console.ReadKey(true);
+                        switch (key.Key)
+                        {
+                            case ConsoleKey.Q:
+                            case ConsoleKey.Escape:
+                                cts.Cancel();
+                                break;
+                        }
                     }
                 }
 
@@ -118,13 +126,13 @@ namespace XELive
         {
             foreach (var err in errors)
             {
-                Console.WriteLine($"Argument parsing error: {Output.BrightRed(err.ToString())}");
+                Console.WriteLine($"Argument parsing error: {Output.Bright.Red(err.ToString())}");
             }
         }
 
         private static void FatalError(Exception err)
         {
-            Console.WriteLine($"ERROR: {Output.BrightRed(err.Message)} ({err.GetType()})");
+            Console.WriteLine($"ERROR: {Output.Bright.Red(err.Message)} ({err.GetType()})");
             Console.WriteLine(Output.Red(err.StackTrace));
         }
 
@@ -151,7 +159,7 @@ namespace XELive
                 }
                 else
                 {
-                    Console.WriteLine($"Warning: {Output.BrightYellow($"Settings file {Output.Bold(path)} not found")}");
+                    Console.WriteLine($"Warning: {Output.Bright.Yellow($"Settings file {Output.Bold(path)} not found")}");
                 }
             }
         }
