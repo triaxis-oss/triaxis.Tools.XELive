@@ -404,7 +404,7 @@ namespace XELive
 
         // regex fragment for a single fully qualified SELECT column with optional alias
         const string s_rexFragColumn = @"((?<table>[[\]\w_.]+)\.(?<column>[[\]\w_]+)(\s+AS\s+(?<alias>[[\]\w_+]+))?)";
-        static readonly Regex s_rexSelect = new Regex(@$"(?<select>SELECT(\s+(TOP\s+\S+|DISTINCT))?)\s+
+        static readonly Regex s_rexSelect = new Regex(@$"(?<select>SELECT(\s+(TOP\s*\S+|DISTINCT))?)\s+
         ({s_rexFragColumn})(,\s+{s_rexFragColumn})*
         \s+(?<from>FROM)",
             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
