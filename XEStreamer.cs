@@ -110,7 +110,7 @@ namespace XELive
 
                 Console.WriteLine($"Creating session {Output.Green(id)} {Output.Yellow(actions)}");
                 await sql.ExecuteAsync($@"CREATE EVENT SESSION [{id}] ON SERVER {events}
-                    WITH (MAX_MEMORY=1MB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,MAX_DISPATCH_LATENCY=1 SECONDS)");
+                    WITH (MAX_MEMORY=8MB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,MAX_DISPATCH_LATENCY=1 SECONDS)");
                 Console.WriteLine($"Starting session {Output.Green(id)}");
                 await sql.ExecuteAsync($"ALTER EVENT SESSION [{id}] ON SERVER STATE = START");
                 try
